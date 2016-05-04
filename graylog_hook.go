@@ -2,6 +2,8 @@ package graylog
 
 import (
 	"bytes"
+	"os"
+	"time"
 
 	"github.com/Graylog2/go-gelf/gelf"
 	"github.com/Sirupsen/logrus"
@@ -9,19 +11,35 @@ import (
 
 // Hook send logs to a logging service compatible with the Graylog API and the GELF format.
 type Hook struct {
-	w      *gelf.Writer
-	levels []logrus.Level
+	hostname string
+	facility string
+	w        *gelf.Writer
+	levels   []logrus.Level
 }
 
-var _ logrus.Hook = &Hook{}
+// can be mocked out for testing
+var (
+	hostname = os.Hostname
+	unixNow  = time.Now().Unix
+)
 
 // New creates a graylog2 hook
-func New(address string, level logrus.Level) (*Hook, error) {
+func New(address, facility string, level logrus.Level) (logrus.Hook, error) {
 	w, err := gelf.NewWriter(address)
+	if err != nil {
+		return nil, err
+	}
+
+	hostname, err := hostname()
+	if err != nil {
+		return nil, err
+	}
 
 	return &Hook{
-		levels: levelThreshold(level),
-		w:      w,
+		levels:   levelThreshold(level),
+		w:        w,
+		hostname: hostname,
+		facility: facility,
 	}, err
 }
 
@@ -41,6 +59,27 @@ func (h *Hook) Levels() []logrus.Level {
 
 // Fire implements logrus.Hook interface
 func (h *Hook) Fire(entry *logrus.Entry) error {
-	_, err := h.w.Write(bytes.TrimSpace([]byte(entry.Message)))
-	return err
+	p := bytes.TrimSpace([]byte(entry.Message))
+	short := bytes.NewBuffer(p)
+	full := ""
+	if i := bytes.IndexRune(p, '\n'); i > 0 {
+		full = short.String()
+		short.Truncate(i)
+	}
+	extra := make(map[string]interface{}, len(entry.Data))
+	for k, v := range entry.Data {
+		extra["_"+k] = v // prefix with _ will be treated as an additional field
+	}
+
+	m := &gelf.Message{
+		Version:  "1.1",
+		Host:     h.hostname,
+		Short:    short.String(),
+		Full:     full,
+		TimeUnix: float64(unixNow()),
+		Level:    int32(entry.Level),
+		Facility: h.facility,
+		Extra:    extra,
+	}
+	return h.w.WriteMessage(m)
 }
