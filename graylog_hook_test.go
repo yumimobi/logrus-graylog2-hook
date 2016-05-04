@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/Graylog2/go-gelf/gelf"
 	"github.com/Sirupsen/logrus"
@@ -32,8 +33,8 @@ func TestHook(t *testing.T) {
 	hostname = func() (string, error) {
 		return "hostname", nil
 	}
-	unixNow = func() int64 {
-		return 111
+	now = func() time.Time {
+		return time.Unix(111, 0)
 	}
 	r, _ := gelf.NewReader("127.0.0.1:0")
 	hook, _ := New(r.Addr(), "facility", logrus.InfoLevel)
@@ -51,9 +52,9 @@ func TestHook(t *testing.T) {
 		Full:     msgData,
 		TimeUnix: 111,
 		Level:    int32(logrus.InfoLevel),
-		Facility: "facility",
 		Extra: map[string]interface{}{
-			"_field": "1",
+			"_field":    "1",
+			"_facility": "facility",
 		},
 	}
 

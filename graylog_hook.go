@@ -20,7 +20,7 @@ type Hook struct {
 // can be mocked out for testing
 var (
 	hostname = os.Hostname
-	unixNow  = time.Now().Unix
+	now      = time.Now
 )
 
 // New creates a graylog2 hook
@@ -66,19 +66,19 @@ func (h *Hook) Fire(entry *logrus.Entry) error {
 		full = short.String()
 		short.Truncate(i)
 	}
-	extra := make(map[string]interface{}, len(entry.Data))
+	extra := map[string]interface{}{}
 	for k, v := range entry.Data {
 		extra["_"+k] = v // prefix with _ will be treated as an additional field
 	}
+	extra["_facility"] = h.facility
 
 	m := &gelf.Message{
 		Version:  "1.1",
 		Host:     h.hostname,
 		Short:    short.String(),
 		Full:     full,
-		TimeUnix: float64(unixNow()),
+		TimeUnix: float64(now().UnixNano()) / 1e9,
 		Level:    int32(entry.Level),
-		Facility: h.facility,
 		Extra:    extra,
 	}
 	return h.w.WriteMessage(m)
