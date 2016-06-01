@@ -19,14 +19,14 @@ func TestLevelThreshold(t *testing.T) {
 }
 
 func TestHook(t *testing.T) {
-	if _, err := New("127.0.0.1", "", logrus.DebugLevel); err == nil {
+	if _, err := New("127.0.0.1", "", map[string]interface{}{"key": "val"}, logrus.DebugLevel); err == nil {
 		t.Errorf("expected error not nil from New but get nil")
 	}
 
 	hostname = func() (string, error) {
 		return "", errors.New("cannot get hostname")
 	}
-	if _, err := New("127.0.0.1:123", "", logrus.DebugLevel); err.Error() != "cannot get hostname" {
+	if _, err := New("127.0.0.1:123", "", map[string]interface{}{"key": "val"}, logrus.DebugLevel); err.Error() != "cannot get hostname" {
 		t.Errorf("expected error cannot get hostname but get %v", err)
 	}
 
@@ -37,7 +37,7 @@ func TestHook(t *testing.T) {
 		return time.Unix(111, 0)
 	}
 	r, _ := gelf.NewReader("127.0.0.1:0")
-	hook, _ := New(r.Addr(), "facility", logrus.InfoLevel)
+	hook, _ := New(r.Addr(), "facility", map[string]interface{}{"key": "val"}, logrus.InfoLevel)
 	logrus.AddHook(hook)
 	logrus.SetOutput(ioutil.Discard)
 
@@ -55,6 +55,7 @@ func TestHook(t *testing.T) {
 		Extra: map[string]interface{}{
 			"_field":    "1",
 			"_facility": "facility",
+			"_key":      "val",
 		},
 	}
 
