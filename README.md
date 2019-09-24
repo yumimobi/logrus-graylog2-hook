@@ -29,10 +29,36 @@ import (
 )
 
 func main() {
-	hook := graylog.New("127.0.0.1:12201", logrus.DebugLevel)
+	hook := graylog.New("127.0.0.1:12201", "ad_server", nil, logrus.DebugLevel)
 	logrus.AddHook(hook)
 	logrus.SetOutput(ioutil.Discard)
 
-	logrus.WithError(errors.New("this is an error")).Info("get an error")
+	// 根据设定过滤规则进行信息发送
+	// 1. 设置 facility 为 ad_server 的匹配规则
+	// logrus.WithError(errors.New("this is an error")).Info("get an error")
+}
+```
+
+```go
+package main
+
+import (
+	"errors"
+	"io/ioutil"
+
+	"github.com/Sirupsen/logrus"
+	"github.com/yumimobi/logrus-graylog2-hook"
+)
+
+func main() {
+	hook := graylog.New("127.0.0.1:12201", "", nil, logrus.DebugLevel)
+	logrus.AddHook(hook)
+	logrus.SetOutput(ioutil.Discard)
+
+	// 根据设定过滤规则进行信息发送
+	// 2. 设置 message(short_message) 为 debug_data 的匹配规则
+	logrus.WithField("user":"张三").Info("debug_data")
+	或者
+	logrus.WithField("user":"张三").WithField("message":"debug_data").Info("user info")
 }
 ```
