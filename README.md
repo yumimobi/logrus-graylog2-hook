@@ -35,7 +35,7 @@ func main() {
 
 	// 根据设定过滤规则进行信息发送
 	// 1. 设置 facility 为 ad_server 的匹配规则
-	// logrus.WithError(errors.New("this is an error")).Info("get an error")
+	logrus.WithError(errors.New("this is an error")).Info("get an error")
 }
 ```
 
